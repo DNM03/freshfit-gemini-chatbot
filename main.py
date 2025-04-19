@@ -18,6 +18,15 @@ MODEL_NAME = "gemini-2.0-flash-thinking-exp-01-21"
 class ChatRequest(BaseModel):
     message: str
 
+@app.get("/cron-job")
+async def cron_job():
+    try:
+        print("Cron job executed successfully.")
+        return {"message": "Cron job executed successfully."}
+    except Exception as e:
+        print(f"Error executing cron job: {e}")
+        return {"message": "Error executing cron job"}
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
