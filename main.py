@@ -1,5 +1,7 @@
 import base64
 import os
+import re
+import json
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from google import genai
@@ -22,6 +24,7 @@ class ChatRequest(BaseModel):
 async def cron_job():
     try:
         print("Cron job executed successfully.")
+        print(dir(types.ThinkingConfig))
         return {"message": "Cron job executed successfully."}
     except Exception as e:
         print(f"Error executing cron job: {e}")
@@ -1888,6 +1891,25 @@ I need to frame these in a way that is actionable and understandable for a mobil
                 ],
             ),
             types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text="""response should have 4 \"/k\" at the start of each, remember this for the rest
+"""),
+                ],
+            ),
+            types.Content(
+                role="model",
+                parts=[
+                    types.Part.from_text(text="""The user wants every response to start with exactly four \"\\k\" characters. I need to remember this instruction for all subsequent responses.
+
+    Okay, I will add `\\k\\k\\k\\k` at the beginning of every response from now on."""),
+                    types.Part.from_text(text="""\\k\\k\\k\\k
+    Got it! 👍 I will add four \"\\k\" characters at the start of every response from now on.
+
+    How can I help you today with FreshFit or your health and fitness goals? 😊"""),
+                ],
+            ),
+            types.Content(
                 role="user",
                 parts=[types.Part.from_text(text=request.message)],
             ),
@@ -1898,6 +1920,7 @@ I need to frame these in a way that is actionable and understandable for a mobil
             top_k=64,
             max_output_tokens=500,
             response_mime_type="text/plain",
+            thinking_config=types.ThinkingConfig(thinking_budget=0)
         )
         response_text = ""
         for chunk in client.models.generate_content_stream(
@@ -1906,11 +1929,33 @@ I need to frame these in a way that is actionable and understandable for a mobil
             config=generate_content_config,
         ):
             response_text += chunk.text
-
-        return {"response": response_text}
+        if not response_text.strip():
+            return {"response": "Empty response from model"}
+        cleaned_json_string, cleaned_value = clean_json_string(response_text)
+        return {"response": cleaned_value}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-        
+
+
+def clean_json_string(json_string, chars_to_remove=None):
+    if chars_to_remove is None:
+        chars_to_remove = ["\\k"]
+    try:
+        parsed_value = json.loads(json_string)
+    except json.JSONDecodeError:
+        parsed_value = json_string
+
+    if not isinstance(parsed_value, str):
+        return json.dumps(parsed_value), parsed_value
+
+    cleaned_value = parsed_value
+    for char in chars_to_remove:
+        cleaned_value = cleaned_value.replace(char, "")
+
+    parts = re.split(r"(?:\\k)+", parsed_value)
+    final_message = parts[-1].strip()
+
+    return json.dumps(final_message), final_message
 
 # def generate():
 #     client = genai.Client(
