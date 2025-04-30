@@ -24,7 +24,6 @@ class ChatRequest(BaseModel):
 async def cron_job():
     try:
         print("Cron job executed successfully.")
-        print(dir(types.ThinkingConfig))
         return {"message": "Cron job executed successfully."}
     except Exception as e:
         print(f"Error executing cron job: {e}")
