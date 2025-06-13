@@ -1917,7 +1917,6 @@ I need to frame these in a way that is actionable and understandable for a mobil
             temperature=0.7,
             top_p=0.95,
             top_k=64,
-            max_output_tokens=500,
             response_mime_type="text/plain",
             thinking_config=types.ThinkingConfig(thinking_budget=0)
         )
